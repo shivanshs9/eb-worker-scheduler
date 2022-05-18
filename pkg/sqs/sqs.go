@@ -1,6 +1,9 @@
 package sqs
 
 import (
+	"errors"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/sirupsen/logrus"
@@ -51,10 +54,22 @@ func (client *Client) PushMessage(options SqsOptions) (msgId string, err error) 
 		MessageAttributes: attributes,
 		MessageBody:       &body,
 	}
-	output, err := client.sqs.SendMessage(input)
-	if err != nil {
-		return
+
+	attempt := 1
+	for {
+		if attempt > options.RetryCount {
+			err = errors.New("Max attempts reached")
+			break
+		}
+		output, err := client.sqs.SendMessage(input)
+		if err != nil {
+			client.log.Warnf("[%v/%v] Failed to send message: %v", attempt, options.RetryCount, err)
+			attempt += 1
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		msgId = *output.MessageId
+		break
 	}
-	msgId = *output.MessageId
 	return
 }

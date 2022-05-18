@@ -43,7 +43,7 @@ func (app *AppCls) start() {
 	if err = app.scheduler.ScheduleCrons(cronData.Crons, app); err != nil {
 		app.log.Fatalf("Failed to schedule crons: %v", err)
 	}
-	app.log.Infof("Starting the scheduler")
+	app.log.Infof("Starting the scheduler with %d crons", len(app.scheduler.Jobs()))
 	app.scheduler.StartBlocking()
 }
 
