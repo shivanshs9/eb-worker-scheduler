@@ -25,16 +25,16 @@ func init() {
 	rootCmd.MarkFlagRequired("queueUrl")
 
 	rootCmd.Flags().StringVarP(&options.YamlPath, "path", "p", "cron.yaml", "Provide the path to cron.yaml file.")
-	rootCmd.Flags().IntVarP(&options.DeduplicationBufferSec, "dedup-sec", "", 5, "Provide the second range for which to keep a same deduplication ID")
+	rootCmd.Flags().IntVarP(&options.RetryCount, "retry", "r", 3, "Number of re-attempts for every failed message push")
 }
 
 func runScheduler(cmd *cobra.Command, args []string) {
 	log := logrus.New()
-	log.Info("Verbose logging enabled")
 	if debug {
+		log.Info("Verbose logging enabled")
 		log.SetLevel(logrus.DebugLevel)
 	}
-	options.RetryCount = 3
+
 	app.StartApp(options, log)
 }
 

@@ -1,11 +1,14 @@
 package pkg
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/shivanshs9/eb-worker-scheduler/pkg/cron"
 	"github.com/shivanshs9/eb-worker-scheduler/pkg/sqs"
 	"github.com/sirupsen/logrus"
+
+	"github.com/google/uuid"
 )
 
 type AppOptions struct {
@@ -23,14 +26,20 @@ type AppCls struct {
 var _ cron.JobProcessor = &AppCls{}
 
 func (app *AppCls) ProcessJob(event cron.CronEvent) {
+	start := time.Now()
 	// to track execution time
 	defer func(start time.Time) {
 		app.log.Infof("[%v] Took %v", event.Name, time.Since(start))
-	}(time.Now())
+	}(start)
 
-	app.log.Infof("[%v] Trigerred execution", event.Name)
-	if err := app.pushJobToQueue(event); err != nil {
-		app.log.Errorf("[%v] Failed to push to queue: %v", event.Name, err)
+	idTimeU := fmt.Sprint(start.Round(60 * time.Second).Unix())
+	idNameU := event.Name
+
+	uniqueId := uuid.NewSHA1(uuid.NameSpaceDNS, []byte(idTimeU+idNameU))
+
+	app.log.Infof("[%v] Trigerred execution for \"%v\" at %v", uniqueId, event.Name, time.Now())
+	if err := app.pushJobToQueue(uniqueId.String(), event); err != nil {
+		app.log.Errorf("[%v] Failed to push to queue: %v", uniqueId, err)
 	}
 }
 

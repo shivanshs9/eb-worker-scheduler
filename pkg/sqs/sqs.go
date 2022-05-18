@@ -2,6 +2,7 @@ package sqs
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -17,13 +18,15 @@ type Client struct {
 }
 
 type SqsOptions struct {
-	QueueUrl               string
-	DeduplicationBufferSec int
-	RetryCount             int
+	QueueUrl   string
+	RetryCount int
 
 	AttrJobPath          string
 	AttrJobScheduledTime string
 	AttrJobTaskName      string
+
+	DedupId string
+	Body    string
 }
 
 func NewSqsClient(log *logrus.Logger) *Client {
@@ -35,24 +38,30 @@ func NewSqsClient(log *logrus.Logger) *Client {
 }
 
 func (client *Client) PushMessage(options SqsOptions) (msgId string, err error) {
-	// dedupId := time.Now().Format("")
+	dataType := "String"
 	attributes := map[string]*sqs.MessageAttributeValue{
 		"beanstalk.sqsd.path": {
 			StringValue: &options.AttrJobPath,
+			DataType:    &dataType,
 		},
 		"beanstalk.sqsd.task_name": {
 			StringValue: &options.AttrJobTaskName,
+			DataType:    &dataType,
 		},
 		"beanstalk.sqsd.scheduled_time": {
 			StringValue: &options.AttrJobScheduledTime,
+			DataType:    &dataType,
 		},
 	}
-	body := "{}"
 	input := &sqs.SendMessageInput{
-		QueueUrl: &options.QueueUrl,
-		// MessageDeduplicationId: &dedupId,
+		QueueUrl:          &options.QueueUrl,
 		MessageAttributes: attributes,
-		MessageBody:       &body,
+		MessageBody:       &options.Body,
+	}
+	if isFifoQueue := strings.HasSuffix(options.QueueUrl, ".fifo"); isFifoQueue {
+		// Config for FIFO queue
+		input.MessageGroupId = &options.AttrJobPath
+		input.MessageDeduplicationId = &options.DedupId
 	}
 
 	attempt := 1
@@ -68,6 +77,7 @@ func (client *Client) PushMessage(options SqsOptions) (msgId string, err error) 
 			time.Sleep(2 * time.Second)
 			continue
 		}
+		client.log.Debugf("Response: %v", output)
 		msgId = *output.MessageId
 		break
 	}
