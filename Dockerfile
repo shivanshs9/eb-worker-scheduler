@@ -8,6 +8,6 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN go build -o ./cron
+RUN go build -o ./crond
 
-ENTRYPOINT [ "/usr/bin/dumb-init", "--", "/app/cron" ]
+ENTRYPOINT [ "/usr/bin/dumb-init", "--", "/app/crond" ]

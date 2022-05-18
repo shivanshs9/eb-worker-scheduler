@@ -10,7 +10,7 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "cron",
+	Use:   "crond",
 	Short: "Start the SQS scheduler, that triggers jobs via SQS based on given crontab",
 	Run:   runScheduler,
 }
