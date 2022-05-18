@@ -1,13 +1,15 @@
 package pkg
 
 import (
+	"time"
+
 	"github.com/shivanshs9/eb-worker-scheduler/pkg/cron"
 	"github.com/shivanshs9/eb-worker-scheduler/pkg/sqs"
 	"github.com/sirupsen/logrus"
 )
 
 type AppOptions struct {
-	sqs.ReceiveMessageOptions
+	sqs.SqsOptions
 	YamlPath string
 }
 
@@ -18,24 +20,19 @@ type AppCls struct {
 	log       *logrus.Logger
 }
 
-// func (app *AppCls) processJob(job *sqs.SQSJobRequest) error {
-// 	// to track execution time
-// 	defer func(start time.Time) {
-// 		app.log.Infof("[%v] Took %v", job.SqsMsgId, time.Since(start))
-// 	}(time.Now())
+var _ cron.JobProcessor = &AppCls{}
 
-// 	app.log.Infof("[%v] Sending POST to %v", job.SqsMsgId, job.AttrJobPath)
-// 	resp, err := app.httpClient.PostRequest(*job)
-// 	if resp != nil {
-// 		defer resp.Body.Close()
-// 	}
-// 	if err != nil {
-// 		return err
-// 	} else if resp.StatusCode != 200 {
-// 		return errors.New(fmt.Sprintf("Received %v from the API call", resp.Status))
-// 	}
-// 	return nil
-// }
+func (app *AppCls) ProcessJob(event cron.CronEvent) {
+	// to track execution time
+	defer func(start time.Time) {
+		app.log.Infof("[%v] Took %v", event.Name, time.Since(start))
+	}(time.Now())
+
+	app.log.Infof("[%v] Trigerred execution", event.Name)
+	if err := app.pushJobToQueue(event); err != nil {
+		app.log.Errorf("[%v] Failed to push to queue: %v", event.Name, err)
+	}
+}
 
 func (app *AppCls) start() {
 	app.log.Infof("Starting the app with following config: %v", *app.options)
@@ -43,9 +40,11 @@ func (app *AppCls) start() {
 	if err != nil {
 		app.log.Fatalf("Failed parsing cron file %v: %v", app.options.YamlPath, err)
 	}
-	if err = app.scheduler.ScheduleCrons(cronData.Crons); err != nil {
+	if err = app.scheduler.ScheduleCrons(cronData.Crons, app); err != nil {
 		app.log.Fatalf("Failed to schedule crons: %v", err)
 	}
+	app.log.Infof("Starting the scheduler")
+	app.scheduler.StartBlocking()
 }
 
 func StartApp(options *AppOptions, log *logrus.Logger) {

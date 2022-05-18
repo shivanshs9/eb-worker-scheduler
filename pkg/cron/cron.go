@@ -10,7 +10,7 @@ import (
 )
 
 type JobProcessor interface {
-	processJob(CronEvent) error
+	ProcessJob(CronEvent)
 }
 
 type CronEvent struct {
@@ -33,7 +33,7 @@ func NewScheduler(log *logrus.Logger) *Scheduler {
 
 func (scheduler *Scheduler) ScheduleCrons(crons []CronEvent, processor JobProcessor) error {
 	for _, cron := range crons {
-		if _, err := scheduler.Cron(cron.Crontab).Do(processor.processJob, cron); err != nil {
+		if _, err := scheduler.Cron(cron.Crontab).Do(processor.ProcessJob, cron); err != nil {
 			return errors.New(fmt.Sprintf("Failed to schedule %v event: %v", cron, err))
 		}
 	}

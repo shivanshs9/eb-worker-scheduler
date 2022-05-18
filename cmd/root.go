@@ -25,6 +25,7 @@ func init() {
 	rootCmd.MarkFlagRequired("queueUrl")
 
 	rootCmd.Flags().StringVarP(&options.YamlPath, "path", "p", "cron.yaml", "Provide the path to cron.yaml file.")
+	rootCmd.Flags().IntVarP(&options.DeduplicationBufferSec, "dedup-sec", "", 5, "Provide the second range for which to keep a same deduplication ID")
 }
 
 func runScheduler(cmd *cobra.Command, args []string) {
@@ -33,9 +34,7 @@ func runScheduler(cmd *cobra.Command, args []string) {
 	if debug {
 		log.SetLevel(logrus.DebugLevel)
 	}
-	if options.MaxBufferedMessages > 10 {
-		options.MaxBufferedMessages = 10
-	}
+	options.RetryCount = 3
 	app.StartApp(options, log)
 }
 
