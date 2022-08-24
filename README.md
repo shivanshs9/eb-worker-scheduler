@@ -1,4 +1,4 @@
-## eb-worker-scheduler
+## [eb-worker-scheduler](https://github.com/shivanshs9/eb-worker-scheduler)
 
 Provides an open-source implementation to [AWS in-built crond daemon](https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/using-features-managing-env-tiers.html#worker-periodictasks) in its EB worker platform.
 Allows executing periodic tasks via SQS and crontab format.
